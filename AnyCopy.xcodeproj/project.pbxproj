@@ -1,0 +1,437 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		11111111111111111111111A /* AnyCopyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11111111111111111111111B /* AnyCopyApp.swift */; };
+		11111111111111111111111C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11111111111111111111111D /* AppDelegate.swift */; };
+		11111111111111111111111E /* ClipboardItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11111111111111111111111F /* ClipboardItem.swift */; };
+		111111111111111111111120 /* ClipboardService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111121 /* ClipboardService.swift */; };
+		111111111111111111111122 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111123 /* StorageService.swift */; };
+		111111111111111111111124 /* HotkeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111125 /* HotkeyService.swift */; };
+		111111111111111111111126 /* SearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111127 /* SearchService.swift */; };
+		111111111111111111111128 /* ClipboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111129 /* ClipboardViewModel.swift */; };
+		11111111111111111111112A /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11111111111111111111112B /* MainWindowView.swift */; };
+		11111111111111111111112C /* SearchBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11111111111111111111112D /* SearchBarView.swift */; };
+		11111111111111111111112E /* ClipboardListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11111111111111111111112F /* ClipboardListView.swift */; };
+		111111111111111111111130 /* PreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111131 /* PreviewView.swift */; };
+		111111111111111111111132 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111133 /* SettingsView.swift */; };
+		111111111111111111111134 /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111135 /* LaunchAtLogin.swift */; };
+		111111111111111111111136 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111137 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		111111111111111111111138 /* AnyCopy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AnyCopy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		11111111111111111111111B /* AnyCopyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnyCopyApp.swift; sourceTree = "<group>"; };
+		11111111111111111111111D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		11111111111111111111111F /* ClipboardItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardItem.swift; sourceTree = "<group>"; };
+		111111111111111111111121 /* ClipboardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardService.swift; sourceTree = "<group>"; };
+		111111111111111111111123 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
+		111111111111111111111125 /* HotkeyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyService.swift; sourceTree = "<group>"; };
+		111111111111111111111127 /* SearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchService.swift; sourceTree = "<group>"; };
+		111111111111111111111129 /* ClipboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardViewModel.swift; sourceTree = "<group>"; };
+		11111111111111111111112B /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
+		11111111111111111111112D /* SearchBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBarView.swift; sourceTree = "<group>"; };
+		11111111111111111111112F /* ClipboardListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardListView.swift; sourceTree = "<group>"; };
+		111111111111111111111131 /* PreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewView.swift; sourceTree = "<group>"; };
+		111111111111111111111133 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		111111111111111111111135 /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
+		111111111111111111111137 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		111111111111111111111139 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		11111111111111111111113A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		11111111111111111111113B = {
+			isa = PBXGroup;
+			children = (
+				11111111111111111111113C /* AnyCopy */,
+				11111111111111111111113D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		11111111111111111111113C /* AnyCopy */ = {
+			isa = PBXGroup;
+			children = (
+				11111111111111111111113E /* App */,
+				11111111111111111111113F /* Models */,
+				111111111111111111111140 /* Services */,
+				111111111111111111111141 /* Views */,
+				111111111111111111111142 /* ViewModels */,
+				111111111111111111111143 /* Utilities */,
+				111111111111111111111144 /* Resources */,
+			);
+			path = AnyCopy;
+			sourceTree = "<group>";
+		};
+		11111111111111111111113D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				111111111111111111111138 /* AnyCopy.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		11111111111111111111113E /* App */ = {
+			isa = PBXGroup;
+			children = (
+				11111111111111111111111B /* AnyCopyApp.swift */,
+				11111111111111111111111D /* AppDelegate.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		11111111111111111111113F /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				11111111111111111111111F /* ClipboardItem.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		111111111111111111111140 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				111111111111111111111121 /* ClipboardService.swift */,
+				111111111111111111111123 /* StorageService.swift */,
+				111111111111111111111125 /* HotkeyService.swift */,
+				111111111111111111111127 /* SearchService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		111111111111111111111141 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				11111111111111111111112B /* MainWindowView.swift */,
+				11111111111111111111112D /* SearchBarView.swift */,
+				11111111111111111111112F /* ClipboardListView.swift */,
+				111111111111111111111131 /* PreviewView.swift */,
+				111111111111111111111133 /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		111111111111111111111142 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				111111111111111111111129 /* ClipboardViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		111111111111111111111143 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				111111111111111111111135 /* LaunchAtLogin.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		111111111111111111111144 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				111111111111111111111137 /* Assets.xcassets */,
+				111111111111111111111139 /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		111111111111111111111145 /* AnyCopy */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 111111111111111111111146 /* Build configuration list for PBXNativeTarget "AnyCopy" */;
+			buildPhases = (
+				111111111111111111111147 /* Sources */,
+				11111111111111111111113A /* Frameworks */,
+				111111111111111111111148 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AnyCopy;
+			productName = AnyCopy;
+			productReference = 111111111111111111111138 /* AnyCopy.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		111111111111111111111149 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					111111111111111111111145 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 11111111111111111111114A /* Build configuration list for PBXProject "AnyCopy" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = "zh-Hans";
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				"zh-Hans",
+			);
+			mainGroup = 11111111111111111111113B;
+			productRefGroup = 11111111111111111111113D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				111111111111111111111145 /* AnyCopy */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		111111111111111111111148 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				111111111111111111111136 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		111111111111111111111147 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				11111111111111111111111A /* AnyCopyApp.swift in Sources */,
+				11111111111111111111111C /* AppDelegate.swift in Sources */,
+				11111111111111111111111E /* ClipboardItem.swift in Sources */,
+				111111111111111111111120 /* ClipboardService.swift in Sources */,
+				111111111111111111111122 /* StorageService.swift in Sources */,
+				111111111111111111111124 /* HotkeyService.swift in Sources */,
+				111111111111111111111126 /* SearchService.swift in Sources */,
+				111111111111111111111128 /* ClipboardViewModel.swift in Sources */,
+				11111111111111111111112A /* MainWindowView.swift in Sources */,
+				11111111111111111111112C /* SearchBarView.swift in Sources */,
+				11111111111111111111112E /* ClipboardListView.swift in Sources */,
+				111111111111111111111130 /* PreviewView.swift in Sources */,
+				111111111111111111111132 /* SettingsView.swift in Sources */,
+				111111111111111111111134 /* LaunchAtLogin.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		11111111111111111111114B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		11111111111111111111114C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		11111111111111111111114D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AnyCopy/Resources/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2024 AnyCopy. All rights reserved.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anycopy.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		11111111111111111111114E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AnyCopy/Resources/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2024 AnyCopy. All rights reserved.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anycopy.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		111111111111111111111146 /* Build configuration list for PBXNativeTarget "AnyCopy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				11111111111111111111114D /* Debug */,
+				11111111111111111111114E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		11111111111111111111114A /* Build configuration list for PBXProject "AnyCopy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				11111111111111111111114B /* Debug */,
+				11111111111111111111114C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 111111111111111111111149 /* Project object */;
+}
