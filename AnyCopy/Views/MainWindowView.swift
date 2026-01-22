@@ -86,6 +86,22 @@ struct MainWindowView: View {
                 isSearchFocused = true
             }
         }
+        .onKeyPress(.upArrow) {
+            // 搜索框聚焦时，上键选择上一条记录
+            if isSearchFocused {
+                viewModel.selectPrevious()
+                return .handled
+            }
+            return .ignored
+        }
+        .onKeyPress(.downArrow) {
+            // 搜索框聚焦时，下键选择下一条记录
+            if isSearchFocused {
+                viewModel.selectNext()
+                return .handled
+            }
+            return .ignored
+        }
     }
 }
 
