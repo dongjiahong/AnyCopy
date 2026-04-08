@@ -11,6 +11,7 @@
 		11111111111111111111111C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11111111111111111111111D /* AppDelegate.swift */; };
 		11111111111111111111111E /* ClipboardItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11111111111111111111111F /* ClipboardItem.swift */; };
 		111111111111111111111120 /* ClipboardService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111121 /* ClipboardService.swift */; };
+		AA11111111111111111111A0 /* LocalServerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11111111111111111111A1 /* LocalServerService.swift */; };
 		111111111111111111111122 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111123 /* StorageService.swift */; };
 		111111111111111111111124 /* HotkeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111125 /* HotkeyService.swift */; };
 		111111111111111111111126 /* SearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111127 /* SearchService.swift */; };
@@ -22,6 +23,7 @@
 		111111111111111111111132 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111133 /* SettingsView.swift */; };
 		111111111111111111111134 /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111135 /* LaunchAtLogin.swift */; };
 		111111111111111111111136 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111137 /* Assets.xcassets */; };
+		1111111111111111111111FA /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1111111111111111111111FB /* AppIcon.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +32,7 @@
 		11111111111111111111111D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		11111111111111111111111F /* ClipboardItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardItem.swift; sourceTree = "<group>"; };
 		111111111111111111111121 /* ClipboardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardService.swift; sourceTree = "<group>"; };
+		AA11111111111111111111A1 /* LocalServerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalServerService.swift; sourceTree = "<group>"; };
 		111111111111111111111123 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
 		111111111111111111111125 /* HotkeyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyService.swift; sourceTree = "<group>"; };
 		111111111111111111111127 /* SearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchService.swift; sourceTree = "<group>"; };
@@ -42,6 +45,7 @@
 		111111111111111111111135 /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
 		111111111111111111111137 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		111111111111111111111139 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1111111111111111111111FB /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				111111111111111111111121 /* ClipboardService.swift */,
+				AA11111111111111111111A1 /* LocalServerService.swift */,
 				111111111111111111111123 /* StorageService.swift */,
 				111111111111111111111125 /* HotkeyService.swift */,
 				111111111111111111111127 /* SearchService.swift */,
@@ -144,13 +149,13 @@
 		111111111111111111111144 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				1111111111111111111111FB /* AppIcon.icns */,
 				111111111111111111111137 /* Assets.xcassets */,
 				111111111111111111111139 /* Info.plist */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
-		};
-/* End PBXGroup section */
+		};/* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
 		111111111111111111111145 /* AnyCopy */ = {
@@ -209,6 +214,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1111111111111111111111FA /* AppIcon.icns in Resources */,
 				111111111111111111111136 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -224,6 +230,7 @@
 				11111111111111111111111C /* AppDelegate.swift in Sources */,
 				11111111111111111111111E /* ClipboardItem.swift in Sources */,
 				111111111111111111111120 /* ClipboardService.swift in Sources */,
+				AA11111111111111111111A0 /* LocalServerService.swift in Sources */,
 				111111111111111111111122 /* StorageService.swift in Sources */,
 				111111111111111111111124 /* HotkeyService.swift in Sources */,
 				111111111111111111111126 /* SearchService.swift in Sources */,

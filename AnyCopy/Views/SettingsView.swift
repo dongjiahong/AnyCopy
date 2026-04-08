@@ -27,7 +27,7 @@ class SettingsWindowManager: ObservableObject {
             .environmentObject(viewModel)
         
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 320, height: 280),
+            contentRect: NSRect(x: 0, y: 0, width: 320, height: 360),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -47,6 +47,7 @@ class SettingsWindowManager: ObservableObject {
 /// 独立窗口的设置内容视图
 struct SettingsWindowContent: View {
     @EnvironmentObject var viewModel: ClipboardViewModel
+    @ObservedObject var serverService = LocalServerService.shared
     @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
     @AppStorage("maxHistoryCount") private var maxHistoryCount: Int = 200
     
@@ -76,6 +77,54 @@ struct SettingsWindowContent: View {
                                 .onChange(of: maxHistoryCount) { _, newValue in
                                     viewModel.trimToLimit(newValue)
                                 }
+                            }
+                        }
+                    }
+                    
+                    // 网络共享
+                    SettingsSection(title: "网络共享") {
+                        VStack(spacing: 10) {
+                            HStack {
+                                Text("共享服务")
+                                Spacer()
+                                Toggle("", isOn: Binding(
+                                    get: { serverService.isRunning },
+                                    set: { newValue in
+                                        if newValue {
+                                            serverService.start()
+                                        } else {
+                                            serverService.stop()
+                                        }
+                                    }
+                                ))
+                                .toggleStyle(.switch)
+                                .labelsHidden()
+                            }
+                            
+                            if serverService.isRunning {
+                                Divider()
+                                
+                                HStack {
+                                    Text("本机 IP")
+                                    Spacer()
+                                    Text(serverService.localIPAddress)
+                                        .foregroundColor(.secondary)
+                                        .textSelection(.enabled)
+                                }
+                                
+                                HStack {
+                                    Text("访问地址")
+                                    Spacer()
+                                    Text("http://\(serverService.localIPAddress):\(serverService.port)")
+                                        .font(.system(size: 11, design: .monospaced))
+                                        .foregroundColor(.accentColor)
+                                        .textSelection(.enabled)
+                                }
+                                
+                                Text("在手机浏览器中打开上方地址即可共享剪贴板")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.secondary.opacity(0.7))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
                     }
@@ -127,7 +176,7 @@ struct SettingsWindowContent: View {
                 .padding(16)
             }
         }
-        .frame(width: 320, height: 280)
+        .frame(width: 320, height: 360)
     }
 }
 

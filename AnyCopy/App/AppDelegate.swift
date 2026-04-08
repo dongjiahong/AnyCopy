@@ -6,6 +6,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     var clipboardViewModel = ClipboardViewModel()
     var clipboardService: ClipboardService!
     var hotkeyService: HotkeyService!
+    let localServer = LocalServerService.shared
     @Published var isMenuPresented: Bool = false
     var popover: NSPopover!
     var statusItem: NSStatusItem!
@@ -14,6 +15,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         // 初始化剪贴板服务
         clipboardService = ClipboardService(viewModel: clipboardViewModel)
         clipboardService.startMonitoring()
+        
+        // 让 ViewModel 持有 ClipboardService 引用（复制时避免重复记录）
+        clipboardViewModel.clipboardService = clipboardService
+        
+        // 设置 Web 服务器：新条目广播给所有手机客户端
+        clipboardViewModel.onNewItem = { [weak self] item in
+            self?.localServer.broadcast(item)
+        }
+        
+        // 手机发来消息 → 写入电脑剪贴板 + 添加到历史
+        localServer.onReceiveText = { [weak self] text in
+            guard let self = self else { return }
+            let item = ClipboardItem(type: .text, textContent: text)
+            self.clipboardViewModel.addItem(item)
+            self.clipboardService.copyToClipboard(item)
+        }
+        
+        // 自动启动 Web 服务器
+        localServer.start()
         
         // 设置 Popover
         let popover = NSPopover()
@@ -47,6 +67,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func applicationWillTerminate(_ notification: Notification) {
         clipboardService.stopMonitoring()
         hotkeyService.unregister()
+        localServer.stop()
     }
     
     @objc func statusItemClicked() {

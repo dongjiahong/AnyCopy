@@ -21,7 +21,6 @@ func drawBackground(size: CGFloat) {
 }
 
 func drawPages(size: CGFloat) {
-    // 1. 绘制后页 (磨砂质感)
     let backRect = NSRect(x: size * 0.35, y: size * 0.35, width: size * 0.35, height: size * 0.4)
     let backPath = NSBezierPath(roundedRect: backRect, xRadius: size * 0.05, yRadius: size * 0.05)
     NSColor(white: 1.0, alpha: 0.4).set()
@@ -30,13 +29,11 @@ func drawPages(size: CGFloat) {
     backPath.lineWidth = size * 0.005
     backPath.stroke()
     
-    // 2. 绘制前页 (纯白)
     let frontRect = NSRect(x: size * 0.3, y: size * 0.25, width: size * 0.35, height: size * 0.4)
     let frontPath = NSBezierPath(roundedRect: frontRect, xRadius: size * 0.05, yRadius: size * 0.05)
     NSColor.white.set()
     frontPath.fill()
     
-    // 3. 绘制线条示意
     let linePath = NSBezierPath()
     linePath.lineWidth = size * 0.018
     linePath.lineCapStyle = .round
@@ -92,7 +89,6 @@ func saveImage(_ image: NSImage, to url: URL) throws {
     try pngData.write(to: url)
 }
 
-// 1. 生成 .iconset 目录所需的所有 PNG
 let iconsetDir = URL(fileURLWithPath: "AnyCopy.iconset")
 try? FileManager.default.createDirectory(at: iconsetDir, withIntermediateDirectories: true)
 
@@ -102,18 +98,10 @@ for s in sizes {
     try saveImage(drawIcon(size: CGFloat(s * 2)), to: iconsetDir.appendingPathComponent("icon_\(s)x\(s)@2x.png"))
 }
 
-// 2. 使用 iconutil 将 .iconset 转换为 .icns
 let process = Process()
 process.executableURL = URL(fileURLWithPath: "/usr/bin/iconutil")
 process.arguments = ["-c", "icns", "AnyCopy.iconset", "-o", "AnyCopy/Resources/AppIcon.icns"]
 try process.run()
 process.waitUntilExit()
 
-// 3. 同时更新 Asset Catalog (保持同步)
-let outputDir = URL(fileURLWithPath: "AnyCopy/Resources/Assets.xcassets/AppIcon.appiconset")
-for s in sizes {
-    try saveImage(drawIcon(size: CGFloat(s)), to: outputDir.appendingPathComponent("icon_\(s)x\(s).png"))
-    try saveImage(drawIcon(size: CGFloat(s * 2)), to: outputDir.appendingPathComponent("icon_\(s)x\(s)@2x.png"))
-}
-
-print("Icons generated and .icns created.")
+print("AppIcon.icns generated successfully.")

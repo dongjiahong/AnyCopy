@@ -15,7 +15,7 @@ struct ClipboardListView: View {
                             item: item,
                             isSelected: viewModel.selectedItem?.id == item.id,
                             isHovered: hoveredItemId == item.id,
-                            onCopy: { copyToClipboard(item) },
+                            onCopy: { viewModel.copyItemToClipboard(item) },
                             onDelete: { viewModel.deleteItem(item) },
                             onPin: { viewModel.togglePin(item) }
                         )
@@ -62,21 +62,6 @@ struct ClipboardListView: View {
         }
     }
     
-    private func copyToClipboard(_ item: ClipboardItem) {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        
-        switch item.type {
-        case .text:
-            if let text = item.textContent {
-                pasteboard.setString(text, forType: .string)
-            }
-        case .image:
-            if let data = item.imageData {
-                pasteboard.setData(data, forType: .png)
-            }
-        }
-    }
 }
 
 /// 空状态视图

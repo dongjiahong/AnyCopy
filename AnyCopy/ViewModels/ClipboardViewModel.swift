@@ -14,6 +14,12 @@ class ClipboardViewModel: ObservableObject {
     private let storageService = StorageService.shared
     private let searchService = SearchService.shared
     
+    /// 弱引用 ClipboardService，用于正确写入粘贴板（避免重复记录）
+    weak var clipboardService: ClipboardService?
+    
+    /// 新条目到达时的回调（供 Web 服务器推送）
+    var onNewItem: ((ClipboardItem) -> Void)?
+    
     init() {
         // 监听搜索文本变化
         $searchText
@@ -73,6 +79,14 @@ class ClipboardViewModel: ObservableObject {
         DispatchQueue.global(qos: .background).async { [weak self] in
             self?.storageService.save(item)
         }
+        
+        // 通知 Web 服务器推送
+        onNewItem?(item)
+    }
+    
+    /// 将指定条目复制到系统粘贴板（通过 ClipboardService 确保 lastChangeCount 同步，避免产生重复记录）
+    func copyItemToClipboard(_ item: ClipboardItem) {
+        clipboardService?.copyToClipboard(item)
     }
     
     /// 置顶/取消置顶

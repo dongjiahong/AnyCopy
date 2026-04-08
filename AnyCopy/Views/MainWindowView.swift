@@ -102,6 +102,14 @@ struct MainWindowView: View {
             }
             return .ignored
         }
+        .onKeyPress(.return) {
+            // 搜索框聚焦时，回车键复制当前选中项到剪贴板
+            if isSearchFocused, let item = viewModel.selectedItem {
+                viewModel.copyItemToClipboard(item)
+                return .handled
+            }
+            return .ignored
+        }
     }
 }
 
