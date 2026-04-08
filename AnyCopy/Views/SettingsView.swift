@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import CoreImage.CIFilterBuiltins
 
 /// 设置窗口管理器
 class SettingsWindowManager: ObservableObject {
@@ -27,7 +28,7 @@ class SettingsWindowManager: ObservableObject {
             .environmentObject(viewModel)
         
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 320, height: 360),
+            contentRect: NSRect(x: 0, y: 0, width: 320, height: 500),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -121,10 +122,27 @@ struct SettingsWindowContent: View {
                                         .textSelection(.enabled)
                                 }
                                 
-                                Text("在手机浏览器中打开上方地址即可共享剪贴板")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.secondary.opacity(0.7))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Divider()
+                                
+                                // 二维码
+                                VStack(spacing: 6) {
+                                    Text("手机扫码访问")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                    
+                                    if let qrImage = generateQRCode(from: "http://\(serverService.localIPAddress):\(serverService.port)") {
+                                        Image(nsImage: qrImage)
+                                            .interpolation(.none)
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 140, height: 140)
+                                            .background(Color.white)
+                                            .cornerRadius(8)
+                                            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 4)
                             }
                         }
                     }
@@ -176,7 +194,24 @@ struct SettingsWindowContent: View {
                 .padding(16)
             }
         }
-        .frame(width: 320, height: 360)
+        .frame(width: 320, height: 500)
+    }
+    
+    /// 生成二维码
+    private func generateQRCode(from string: String) -> NSImage? {
+        let context = CIContext()
+        let filter = CIFilter.qrCodeGenerator()
+        filter.message = Data(string.utf8)
+        filter.correctionLevel = "M"
+        
+        guard let ciImage = filter.outputImage else { return nil }
+        
+        // 放大二维码（默认很小）
+        let scale = CGAffineTransform(scaleX: 10, y: 10)
+        let scaledImage = ciImage.transformed(by: scale)
+        
+        guard let cgImage = context.createCGImage(scaledImage, from: scaledImage.extent) else { return nil }
+        return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
     }
 }
 
