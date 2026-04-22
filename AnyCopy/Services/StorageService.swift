@@ -7,6 +7,7 @@ class StorageService {
     
     private var db: OpaquePointer?
     private let dbPath: String
+    private let queue = DispatchQueue(label: "com.anycopy.storage")
     
     private init() {
         // 数据库存储在 Application Support 目录
@@ -73,178 +74,188 @@ class StorageService {
     
     /// 保存剪贴板条目
     func save(_ item: ClipboardItem) {
-        let sql = """
-        INSERT OR REPLACE INTO clipboard_items (id, type, text_content, image_data, preview, created_at, is_pinned)
-        VALUES (?, ?, ?, ?, ?, ?, ?);
-        """
-        
-        var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            print("准备语句失败")
-            return
-        }
-        defer { sqlite3_finalize(stmt) }
-        
-        sqlite3_bind_text(stmt, 1, item.id.uuidString, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
-        sqlite3_bind_text(stmt, 2, item.type.rawValue, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
-        
-        if let text = item.textContent {
-            sqlite3_bind_text(stmt, 3, text, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
-        } else {
-            sqlite3_bind_null(stmt, 3)
-        }
-        
-        if let data = item.imageData {
-            data.withUnsafeBytes { ptr in
-                sqlite3_bind_blob(stmt, 4, ptr.baseAddress, Int32(data.count), unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+        queue.sync {
+            let sql = """
+            INSERT OR REPLACE INTO clipboard_items (id, type, text_content, image_data, preview, created_at, is_pinned)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+            """
+            
+            var stmt: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+                print("准备语句失败")
+                return
             }
-        } else {
-            sqlite3_bind_null(stmt, 4)
-        }
-        
-        sqlite3_bind_text(stmt, 5, item.preview, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
-        sqlite3_bind_double(stmt, 6, item.createdAt.timeIntervalSince1970)
-        sqlite3_bind_int(stmt, 7, item.isPinned ? 1 : 0)
-        
-        if sqlite3_step(stmt) != SQLITE_DONE {
-            print("保存失败")
+            defer { sqlite3_finalize(stmt) }
+            
+            sqlite3_bind_text(stmt, 1, item.id.uuidString, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+            sqlite3_bind_text(stmt, 2, item.type.rawValue, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+            
+            if let text = item.textContent {
+                sqlite3_bind_text(stmt, 3, text, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+            } else {
+                sqlite3_bind_null(stmt, 3)
+            }
+            
+            if let data = item.imageData {
+                _ = data.withUnsafeBytes { ptr in
+                    sqlite3_bind_blob(stmt, 4, ptr.baseAddress, Int32(data.count), unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+                }
+            } else {
+                sqlite3_bind_null(stmt, 4)
+            }
+            
+            sqlite3_bind_text(stmt, 5, item.preview, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+            sqlite3_bind_double(stmt, 6, item.createdAt.timeIntervalSince1970)
+            sqlite3_bind_int(stmt, 7, item.isPinned ? 1 : 0)
+            
+            if sqlite3_step(stmt) != SQLITE_DONE {
+                print("保存失败")
+            }
         }
     }
     
     /// 更新置顶状态
     func updatePinned(_ item: ClipboardItem) {
-        let sql = "UPDATE clipboard_items SET is_pinned = ? WHERE id = ?;"
-        
-        var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return }
-        defer { sqlite3_finalize(stmt) }
-        
-        sqlite3_bind_int(stmt, 1, item.isPinned ? 1 : 0)
-        sqlite3_bind_text(stmt, 2, item.id.uuidString, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
-        sqlite3_step(stmt)
+        queue.sync {
+            let sql = "UPDATE clipboard_items SET is_pinned = ? WHERE id = ?;"
+            
+            var stmt: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return }
+            defer { sqlite3_finalize(stmt) }
+            
+            sqlite3_bind_int(stmt, 1, item.isPinned ? 1 : 0)
+            sqlite3_bind_text(stmt, 2, item.id.uuidString, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+            sqlite3_step(stmt)
+        }
     }
     
     /// 加载所有剪贴板条目（置顶优先，然后按时间排序）
     func loadItems(limit: Int = 500, offset: Int = 0) -> [ClipboardItem] {
-        let sql = "SELECT id, type, text_content, image_data, preview, created_at, is_pinned FROM clipboard_items ORDER BY is_pinned DESC, created_at DESC LIMIT ? OFFSET ?;"
-        
-        var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            return []
+        queue.sync {
+            let sql = "SELECT id, type, text_content, image_data, preview, created_at, is_pinned FROM clipboard_items ORDER BY is_pinned DESC, created_at DESC LIMIT ? OFFSET ?;"
+            
+            var stmt: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+                return []
+            }
+            defer { sqlite3_finalize(stmt) }
+            
+            sqlite3_bind_int(stmt, 1, Int32(limit))
+            sqlite3_bind_int(stmt, 2, Int32(offset))
+            
+            var items: [ClipboardItem] = []
+            
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                guard let idStr = sqlite3_column_text(stmt, 0),
+                      let typeStr = sqlite3_column_text(stmt, 1),
+                      sqlite3_column_text(stmt, 4) != nil else {
+                    continue
+                }
+                
+                let id = UUID(uuidString: String(cString: idStr)) ?? UUID()
+                let type = ClipboardItemType(rawValue: String(cString: typeStr)) ?? .text
+                let createdAt = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 5))
+                let isPinned = sqlite3_column_int(stmt, 6) == 1
+                
+                var textContent: String?
+                if let textPtr = sqlite3_column_text(stmt, 2) {
+                    textContent = String(cString: textPtr)
+                }
+                
+                var imageData: Data?
+                if let blobPtr = sqlite3_column_blob(stmt, 3) {
+                    let blobSize = sqlite3_column_bytes(stmt, 3)
+                    imageData = Data(bytes: blobPtr, count: Int(blobSize))
+                }
+                
+                let item = ClipboardItem(
+                    id: id,
+                    type: type,
+                    textContent: textContent,
+                    imageData: imageData,
+                    createdAt: createdAt,
+                    isPinned: isPinned
+                )
+                items.append(item)
+            }
+            
+            return items
         }
-        defer { sqlite3_finalize(stmt) }
-        
-        sqlite3_bind_int(stmt, 1, Int32(limit))
-        sqlite3_bind_int(stmt, 2, Int32(offset))
-        
-        var items: [ClipboardItem] = []
-        
-        while sqlite3_step(stmt) == SQLITE_ROW {
-            guard let idStr = sqlite3_column_text(stmt, 0),
-                  let typeStr = sqlite3_column_text(stmt, 1),
-                  let previewStr = sqlite3_column_text(stmt, 4) else {
-                continue
-            }
-            
-            let id = UUID(uuidString: String(cString: idStr)) ?? UUID()
-            let type = ClipboardItemType(rawValue: String(cString: typeStr)) ?? .text
-            let preview = String(cString: previewStr)
-            let createdAt = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 5))
-            let isPinned = sqlite3_column_int(stmt, 6) == 1
-            
-            var textContent: String?
-            if let textPtr = sqlite3_column_text(stmt, 2) {
-                textContent = String(cString: textPtr)
-            }
-            
-            var imageData: Data?
-            if let blobPtr = sqlite3_column_blob(stmt, 3) {
-                let blobSize = sqlite3_column_bytes(stmt, 3)
-                imageData = Data(bytes: blobPtr, count: Int(blobSize))
-            }
-            
-            let item = ClipboardItem(
-                id: id,
-                type: type,
-                textContent: textContent,
-                imageData: imageData,
-                createdAt: createdAt,
-                isPinned: isPinned
-            )
-            items.append(item)
-        }
-        
-        return items
     }
     
     /// 删除指定条目
     func delete(_ item: ClipboardItem) {
-        let sql = "DELETE FROM clipboard_items WHERE id = ?;"
-        
-        var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return }
-        defer { sqlite3_finalize(stmt) }
-        
-        sqlite3_bind_text(stmt, 1, item.id.uuidString, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
-        sqlite3_step(stmt)
+        queue.sync {
+            let sql = "DELETE FROM clipboard_items WHERE id = ?;"
+            
+            var stmt: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return }
+            defer { sqlite3_finalize(stmt) }
+            
+            sqlite3_bind_text(stmt, 1, item.id.uuidString, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+            sqlite3_step(stmt)
+        }
     }
     
     /// 清空所有历史记录（保留置顶项）
     func clearAll(keepPinned: Bool = true) {
-        let sql = keepPinned ? "DELETE FROM clipboard_items WHERE is_pinned = 0;" : "DELETE FROM clipboard_items;"
-        sqlite3_exec(db, sql, nil, nil, nil)
+        queue.sync {
+            let sql = keepPinned ? "DELETE FROM clipboard_items WHERE is_pinned = 0;" : "DELETE FROM clipboard_items;"
+            sqlite3_exec(db, sql, nil, nil, nil)
+        }
     }
     
     /// 搜索文字内容
     func search(keyword: String) -> [ClipboardItem] {
-        let sql = "SELECT id, type, text_content, image_data, preview, created_at, is_pinned FROM clipboard_items WHERE text_content LIKE ? ORDER BY is_pinned DESC, created_at DESC LIMIT 100;"
-        
-        var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            return []
+        queue.sync {
+            let sql = "SELECT id, type, text_content, image_data, preview, created_at, is_pinned FROM clipboard_items WHERE text_content LIKE ? ORDER BY is_pinned DESC, created_at DESC LIMIT 100;"
+            
+            var stmt: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+                return []
+            }
+            defer { sqlite3_finalize(stmt) }
+            
+            let pattern = "%\(keyword)%"
+            sqlite3_bind_text(stmt, 1, pattern, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+            
+            var items: [ClipboardItem] = []
+            
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                guard let idStr = sqlite3_column_text(stmt, 0),
+                      let typeStr = sqlite3_column_text(stmt, 1),
+                      sqlite3_column_text(stmt, 4) != nil else {
+                    continue
+                }
+                
+                let id = UUID(uuidString: String(cString: idStr)) ?? UUID()
+                let type = ClipboardItemType(rawValue: String(cString: typeStr)) ?? .text
+                let createdAt = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 5))
+                let isPinned = sqlite3_column_int(stmt, 6) == 1
+                
+                var textContent: String?
+                if let textPtr = sqlite3_column_text(stmt, 2) {
+                    textContent = String(cString: textPtr)
+                }
+                
+                var imageData: Data?
+                if let blobPtr = sqlite3_column_blob(stmt, 3) {
+                    let blobSize = sqlite3_column_bytes(stmt, 3)
+                    imageData = Data(bytes: blobPtr, count: Int(blobSize))
+                }
+                
+                let item = ClipboardItem(
+                    id: id,
+                    type: type,
+                    textContent: textContent,
+                    imageData: imageData,
+                    createdAt: createdAt,
+                    isPinned: isPinned
+                )
+                items.append(item)
+            }
+            
+            return items
         }
-        defer { sqlite3_finalize(stmt) }
-        
-        let pattern = "%\(keyword)%"
-        sqlite3_bind_text(stmt, 1, pattern, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
-        
-        var items: [ClipboardItem] = []
-        
-        while sqlite3_step(stmt) == SQLITE_ROW {
-            guard let idStr = sqlite3_column_text(stmt, 0),
-                  let typeStr = sqlite3_column_text(stmt, 1),
-                  let previewStr = sqlite3_column_text(stmt, 4) else {
-                continue
-            }
-            
-            let id = UUID(uuidString: String(cString: idStr)) ?? UUID()
-            let type = ClipboardItemType(rawValue: String(cString: typeStr)) ?? .text
-            let preview = String(cString: previewStr)
-            let createdAt = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 5))
-            let isPinned = sqlite3_column_int(stmt, 6) == 1
-            
-            var textContent: String?
-            if let textPtr = sqlite3_column_text(stmt, 2) {
-                textContent = String(cString: textPtr)
-            }
-            
-            var imageData: Data?
-            if let blobPtr = sqlite3_column_blob(stmt, 3) {
-                let blobSize = sqlite3_column_bytes(stmt, 3)
-                imageData = Data(bytes: blobPtr, count: Int(blobSize))
-            }
-            
-            let item = ClipboardItem(
-                id: id,
-                type: type,
-                textContent: textContent,
-                imageData: imageData,
-                createdAt: createdAt,
-                isPinned: isPinned
-            )
-            items.append(item)
-        }
-        
-        return items
     }
 }

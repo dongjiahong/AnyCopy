@@ -52,7 +52,7 @@ class HotkeyService {
         let modifiers = UInt32(shiftKey | cmdKey)
         let keyCode = UInt32(kVK_ANSI_V)
         
-        var hotkeyID = self.hotkeyID
+        let hotkeyID = self.hotkeyID
         let registerStatus = RegisterEventHotKey(
             keyCode,
             modifiers,

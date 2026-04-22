@@ -64,37 +64,45 @@ class LocalServerService: ObservableObject {
     func stop() {
         listener?.cancel()
         listener = nil
-        for conn in wsConnections {
-            conn.cancel()
-        }
-        wsConnections.removeAll()
-        DispatchQueue.main.async {
-            self.isRunning = false
+        
+        queue.async { [weak self] in
+            guard let self = self else { return }
+            for conn in self.wsConnections {
+                conn.cancel()
+            }
+            self.wsConnections.removeAll()
+            DispatchQueue.main.async {
+                self.isRunning = false
+            }
         }
     }
     
     // MARK: - 推送剪贴板内容到所有 WebSocket 客户端
     
     func broadcast(_ item: ClipboardItem) {
-        let payload: [String: Any]
-        switch item.type {
-        case .text:
-            payload = ["type": "clipboard", "contentType": "text", "content": item.textContent ?? "", "time": item.fullDateTime]
-        case .image:
-            if let data = item.imageData {
-                let base64 = data.base64EncodedString()
-                payload = ["type": "clipboard", "contentType": "image", "content": base64, "time": item.fullDateTime]
-            } else {
-                return
+        queue.async { [weak self] in
+            guard let self = self else { return }
+            
+            let payload: [String: Any]
+            switch item.type {
+            case .text:
+                payload = ["type": "clipboard", "contentType": "text", "content": item.textContent ?? "", "time": item.fullDateTime]
+            case .image:
+                if let data = item.imageData {
+                    let base64 = data.base64EncodedString()
+                    payload = ["type": "clipboard", "contentType": "image", "content": base64, "time": item.fullDateTime]
+                } else {
+                    return
+                }
             }
-        }
-        
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
-              let jsonString = String(data: jsonData, encoding: .utf8) else { return }
-        
-        let frame = makeWebSocketFrame(text: jsonString)
-        for conn in wsConnections {
-            conn.send(content: frame, completion: .idempotent)
+            
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
+                  let jsonString = String(data: jsonData, encoding: .utf8) else { return }
+            
+            let frame = self.makeWebSocketFrame(text: jsonString)
+            for conn in self.wsConnections {
+                conn.send(content: frame, completion: .idempotent)
+            }
         }
     }
     
@@ -162,10 +170,10 @@ class LocalServerService: ObservableObject {
                 return
             }
             
-            DispatchQueue.main.async {
+            self?.queue.async {
                 self?.wsConnections.append(connection)
+                self?.readWebSocketFrames(connection: connection)
             }
-            self?.readWebSocketFrames(connection: connection)
         })
     }
     
@@ -343,7 +351,7 @@ class LocalServerService: ObservableObject {
     
     private func removeConnection(_ connection: NWConnection) {
         connection.cancel()
-        DispatchQueue.main.async { [weak self] in
+        queue.async { [weak self] in
             self?.wsConnections.removeAll { $0 === connection }
         }
     }
