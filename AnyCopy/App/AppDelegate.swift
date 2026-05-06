@@ -10,6 +10,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var isMenuPresented: Bool = false
     var popover: NSPopover!
     var statusItem: NSStatusItem!
+    private var keyDownMonitor: Any?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 初始化剪贴板服务
@@ -51,7 +52,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         popover.contentSize = NSSize(width: 600, height: 400)
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(
-            rootView: ContentMenuView().environmentObject(clipboardViewModel)
+            rootView: ContentMenuView(onConfirmSelection: { [weak self] in
+                self?.confirmSelectionAndPaste()
+            })
+            .environmentObject(clipboardViewModel)
         )
         self.popover = popover
         
@@ -67,6 +71,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             self?.togglePopover()
         }
         hotkeyService.register()
+        installKeyDownMonitor()
         
         // 配置开机启动
         LaunchAtLogin.configureIfNeeded()
@@ -78,6 +83,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func applicationWillTerminate(_ notification: Notification) {
         clipboardService.stopMonitoring()
         hotkeyService.unregister()
+        if let keyDownMonitor {
+            NSEvent.removeMonitor(keyDownMonitor)
+        }
         localServer.stop()
     }
     
@@ -97,11 +105,43 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                     self.popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
                     // 强制激活应用，确保窗口获取焦点
                     NSApp.activate(ignoringOtherApps: true)
+                    DispatchQueue.main.async {
+                        self.popover.contentViewController?.view.window?.makeKey()
+                    }
                     // 发送通知聚焦搜索框
                     NotificationCenter.default.post(name: .showClipboardWindow, object: nil)
                 }
             }
         }
+    }
+
+    private func installKeyDownMonitor() {
+        keyDownMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, self.popover.isShown else { return event }
+
+            switch Int(event.keyCode) {
+            case kVK_UpArrow:
+                self.clipboardViewModel.selectPrevious()
+                return nil
+            case kVK_DownArrow:
+                self.clipboardViewModel.selectNext()
+                return nil
+            case kVK_Return, kVK_ANSI_KeypadEnter:
+                self.confirmSelectionAndPaste()
+                return nil
+            default:
+                return event
+            }
+        }
+    }
+
+    /// 确认选中内容，复制到系统剪贴板并关闭面板。
+    private func confirmSelectionAndPaste() {
+        guard clipboardViewModel.selectedItem != nil else { return }
+
+        clipboardViewModel.confirmSelectedItem()
+        clipboardViewModel.clearSearch()
+        popover.performClose(nil)
     }
 }
 

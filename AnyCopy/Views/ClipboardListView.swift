@@ -5,6 +5,7 @@ import AppKit
 struct ClipboardListView: View {
     @EnvironmentObject var viewModel: ClipboardViewModel
     @State private var hoveredItemId: UUID?
+    var onSelectItem: () -> Void = {}
     
     var body: some View {
         ScrollViewReader { proxy in
@@ -22,6 +23,7 @@ struct ClipboardListView: View {
                         .id(item.id)
                         .onTapGesture {
                             viewModel.selectedItem = item
+                            onSelectItem()
                         }
                         .onHover { hovering in
                             hoveredItemId = hovering ? item.id : nil

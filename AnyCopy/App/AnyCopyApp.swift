@@ -14,9 +14,10 @@ struct AnyCopyApp: App {
 /// 菜单栏弹出内容视图
 struct ContentMenuView: View {
     @EnvironmentObject var viewModel: ClipboardViewModel
+    var onConfirmSelection: () -> Void = {}
     
     var body: some View {
-        MainWindowView()
+        MainWindowView(onConfirmSelection: onConfirmSelection)
             .frame(width: 600, height: 400)
     }
 }

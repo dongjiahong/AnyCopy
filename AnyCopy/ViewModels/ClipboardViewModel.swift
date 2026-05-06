@@ -44,9 +44,9 @@ class ClipboardViewModel: ObservableObject {
                 self?.filterItems(keyword: self?.searchText ?? "")
                 self?.isLoading = false
                 
-                // 默认选中第一项
+                // 默认选中第一条非置顶记录
                 if self?.selectedItem == nil {
-                    self?.selectedItem = self?.filteredItems.first
+                    self?.selectedItem = self?.defaultSelectedItem()
                 }
             }
         }
@@ -87,6 +87,19 @@ class ClipboardViewModel: ObservableObject {
     /// 将指定条目复制到系统粘贴板（通过 ClipboardService 确保 lastChangeCount 同步，避免产生重复记录）
     func copyItemToClipboard(_ item: ClipboardItem) {
         clipboardService?.copyToClipboard(item)
+    }
+
+    /// 确认当前选中项
+    func confirmSelectedItem() {
+        guard let selectedItem else { return }
+        copyItemToClipboard(selectedItem)
+    }
+
+    /// 清空搜索并恢复默认选择
+    func clearSearch() {
+        searchText = ""
+        filterItems(keyword: "")
+        selectedItem = defaultSelectedItem()
     }
     
     /// 置顶/取消置顶
@@ -141,7 +154,7 @@ class ClipboardViewModel: ObservableObject {
         filterItems(keyword: searchText)
         
         if selectedItem?.id == item.id {
-            selectedItem = filteredItems.first
+            selectedItem = defaultSelectedItem()
         }
         
         DispatchQueue.global(qos: .background).async { [weak self] in
@@ -155,7 +168,7 @@ class ClipboardViewModel: ObservableObject {
         filterItems(keyword: searchText)
         
         if let selected = selectedItem, !items.contains(selected) {
-            selectedItem = filteredItems.first
+            selectedItem = defaultSelectedItem()
         }
         
         DispatchQueue.global(qos: .background).async { [weak self] in
@@ -173,8 +186,13 @@ class ClipboardViewModel: ObservableObject {
         
         // 更新选中项
         if let selected = selectedItem, !filteredItems.contains(selected) {
-            selectedItem = filteredItems.first
+            selectedItem = defaultSelectedItem()
         }
+    }
+
+    /// 默认选择第一条非置顶记录；如果当前结果只有置顶记录，则选择第一条。
+    private func defaultSelectedItem() -> ClipboardItem? {
+        filteredItems.first { !$0.isPinned } ?? filteredItems.first
     }
     
     /// 选择上一项
@@ -193,7 +211,7 @@ class ClipboardViewModel: ObservableObject {
               let index = filteredItems.firstIndex(of: current),
               index < filteredItems.count - 1 else {
             if selectedItem == nil && !filteredItems.isEmpty {
-                selectedItem = filteredItems.first
+                selectedItem = defaultSelectedItem()
             }
             return
         }

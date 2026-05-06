@@ -106,11 +106,21 @@ struct PreviewView: View {
 /// 文字预览视图（支持 Markdown）
 struct TextPreviewView: View {
     let text: String
+
+    private let markdownLimit = 8_000
+    private let previewLimit = 5_000
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // 尝试解析 Markdown
-            if let attributedString = try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
+        VStack(alignment: .leading, spacing: 10) {
+            if isLargeText {
+                largeTextNotice
+
+                Text(previewText)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(.primary.opacity(0.9))
+                    .lineSpacing(3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if let attributedString = try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
                 Text(attributedString)
                     .font(.system(size: 13))
                     .foregroundColor(.primary.opacity(0.9))
@@ -135,6 +145,32 @@ struct TextPreviewView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 10)
                 .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+        )
+    }
+
+    private var isLargeText: Bool {
+        text.count > markdownLimit
+    }
+
+    private var previewText: String {
+        guard text.count > previewLimit else { return text }
+        return String(text.prefix(previewLimit))
+    }
+
+    private var largeTextNotice: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "text.alignleft")
+                .font(.system(size: 11))
+
+            Text(text.count > previewLimit ? "内容较大，仅预览前 \(previewLimit) 个字符" : "内容较大，已使用快速预览")
+                .font(.system(size: 11, weight: .medium))
+        }
+        .foregroundColor(.secondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(Color.secondary.opacity(0.1))
         )
     }
 }

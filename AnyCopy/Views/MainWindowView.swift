@@ -4,6 +4,8 @@ import SwiftUI
 struct MainWindowView: View {
     @EnvironmentObject var viewModel: ClipboardViewModel
     @FocusState private var isSearchFocused: Bool
+    @FocusState private var isContentFocused: Bool
+    var onConfirmSelection: () -> Void = {}
     
     var body: some View {
         HStack(spacing: 0) {
@@ -18,7 +20,9 @@ struct MainWindowView: View {
                 Divider()
                 
                 // 历史列表
-                ClipboardListView()
+                ClipboardListView {
+                    focusSelectedContent()
+                }
                 
                 Divider()
                 
@@ -67,6 +71,8 @@ struct MainWindowView: View {
             PreviewView()
                 .frame(minWidth: 320)
         }
+        .focusable()
+        .focused($isContentFocused)
         .background(Color(NSColor.windowBackgroundColor))
         .onAppear {
             // 设置 ViewModel 引用
@@ -75,40 +81,50 @@ struct MainWindowView: View {
             // 窗口出现时聚焦搜索框
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isSearchFocused = true
+                isContentFocused = false
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .focusSearchField)) { _ in
             isSearchFocused = true
+            isContentFocused = false
         }
         .onReceive(NotificationCenter.default.publisher(for: .showClipboardWindow)) { _ in
             // 收到显示通知时聚焦搜索框
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isSearchFocused = true
+                isContentFocused = false
             }
         }
         .onKeyPress(.upArrow) {
-            // 搜索框聚焦时，上键选择上一条记录
-            if isSearchFocused {
+            // 上键选择上一条记录
+            if !viewModel.filteredItems.isEmpty {
                 viewModel.selectPrevious()
                 return .handled
             }
             return .ignored
         }
         .onKeyPress(.downArrow) {
-            // 搜索框聚焦时，下键选择下一条记录
-            if isSearchFocused {
+            // 下键选择下一条记录
+            if !viewModel.filteredItems.isEmpty {
                 viewModel.selectNext()
                 return .handled
             }
             return .ignored
         }
         .onKeyPress(.return) {
-            // 搜索框聚焦时，回车键复制当前选中项到剪贴板
-            if isSearchFocused, let item = viewModel.selectedItem {
-                viewModel.copyItemToClipboard(item)
+            // 回车确认当前选中项，并交给 AppDelegate 粘贴回之前的应用。
+            if viewModel.selectedItem != nil {
+                onConfirmSelection()
                 return .handled
             }
             return .ignored
+        }
+    }
+
+    private func focusSelectedContent() {
+        isSearchFocused = false
+        DispatchQueue.main.async {
+            isContentFocused = true
         }
     }
 }
