@@ -23,6 +23,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         clipboardViewModel.onNewItem = { [weak self] item in
             self?.localServer.broadcast(item)
         }
+
+        // Web 客户端刷新/重连时拉取当前历史快照
+        localServer.historyProvider = { [weak self] in
+            guard let self = self else { return [] }
+            if Thread.isMainThread {
+                return self.clipboardViewModel.items
+            }
+            return DispatchQueue.main.sync {
+                self.clipboardViewModel.items
+            }
+        }
         
         // 手机发来消息 → 写入电脑剪贴板 + 添加到历史
         localServer.onReceiveText = { [weak self] text in

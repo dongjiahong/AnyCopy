@@ -121,6 +121,22 @@ struct SettingsWindowContent: View {
                                         .foregroundColor(.accentColor)
                                         .textSelection(.enabled)
                                 }
+
+                                HStack {
+                                    Text("已连接客户端")
+                                    Spacer()
+                                    Text("\(serverService.connectedClientCount) 个")
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Button {
+                                    serverService.broadcastHistory()
+                                } label: {
+                                    Text("同步最近 100 条到客户端")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .controlSize(.small)
+                                .disabled(serverService.connectedClientCount == 0)
                                 
                                 Divider()
                                 

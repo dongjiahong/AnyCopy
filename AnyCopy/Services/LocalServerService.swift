@@ -10,6 +10,7 @@ class LocalServerService: ObservableObject {
     @Published var isRunning: Bool = false
     @Published var port: UInt16 = 17582
     @Published var localIPAddress: String = "未知"
+    @Published var connectedClientCount: Int = 0
     
     private var listener: NWListener?
     private var wsConnections: [NWConnection] = []
@@ -17,6 +18,9 @@ class LocalServerService: ObservableObject {
     
     /// 接收到手机发来的文字时的回调
     var onReceiveText: ((String) -> Void)?
+
+    /// 当前历史快照，用于 Web 客户端刷新或重连后恢复列表
+    var historyProvider: (() -> [ClipboardItem])?
     
     private init() {
         localIPAddress = getLocalIPAddress() ?? "未知"
@@ -73,6 +77,7 @@ class LocalServerService: ObservableObject {
             self.wsConnections.removeAll()
             DispatchQueue.main.async {
                 self.isRunning = false
+                self.connectedClientCount = 0
             }
         }
     }
@@ -83,25 +88,28 @@ class LocalServerService: ObservableObject {
         queue.async { [weak self] in
             guard let self = self else { return }
             
-            let payload: [String: Any]
-            switch item.type {
-            case .text:
-                payload = ["type": "clipboard", "contentType": "text", "content": item.textContent ?? "", "time": item.fullDateTime]
-            case .image:
-                if let data = item.imageData {
-                    let base64 = data.base64EncodedString()
-                    payload = ["type": "clipboard", "contentType": "image", "content": base64, "time": item.fullDateTime]
-                } else {
-                    return
-                }
-            }
+            guard let payload = self.makeClipboardPayload(item) else { return }
             
             guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
                   let jsonString = String(data: jsonData, encoding: .utf8) else { return }
             
             let frame = self.makeWebSocketFrame(text: jsonString)
             for conn in self.wsConnections {
-                conn.send(content: frame, completion: .idempotent)
+                conn.send(content: frame, completion: .contentProcessed { [weak self] error in
+                    if error != nil {
+                        self?.removeConnection(conn)
+                    }
+                })
+            }
+        }
+    }
+
+    /// 手动向所有 Web 客户端同步最近 100 条历史
+    func broadcastHistory() {
+        queue.async { [weak self] in
+            guard let self = self else { return }
+            for conn in self.wsConnections {
+                self.sendHistory(to: conn)
             }
         }
     }
@@ -137,6 +145,7 @@ class LocalServerService: ObservableObject {
         Content-Type: text/html; charset=utf-8\r
         Content-Length: \(html.utf8.count)\r
         Connection: close\r
+        Cache-Control: no-store\r
         Access-Control-Allow-Origin: *\r
         \r
         \(html)
@@ -172,6 +181,8 @@ class LocalServerService: ObservableObject {
             
             self?.queue.async {
                 self?.wsConnections.append(connection)
+                self?.publishClientCount()
+                self?.sendHistory(to: connection)
                 self?.readWebSocketFrames(connection: connection)
             }
         })
@@ -287,22 +298,6 @@ class LocalServerService: ObservableObject {
                 DispatchQueue.main.async { [weak self] in
                     self?.onReceiveText?(content)
                 }
-                
-                // 广播给所有其他客户端
-                let ack: [String: Any] = [
-                    "type": "clipboard",
-                    "contentType": "text",
-                    "content": content,
-                    "time": currentTimeString(),
-                    "source": "phone"
-                ]
-                if let ackData = try? JSONSerialization.data(withJSONObject: ack),
-                   let ackStr = String(data: ackData, encoding: .utf8) {
-                    let frame = makeWebSocketFrame(text: ackStr)
-                    for conn in wsConnections {
-                        conn.send(content: frame, completion: .idempotent)
-                    }
-                }
             }
         } else if msgType == "ping" {
             // 心跳
@@ -346,13 +341,62 @@ class LocalServerService: ObservableObject {
         frame.append(payload)
         return frame
     }
+
+    private func makeClipboardPayload(_ item: ClipboardItem) -> [String: Any]? {
+        switch item.type {
+        case .text:
+            return [
+                "type": "clipboard",
+                "id": item.id.uuidString,
+                "contentType": "text",
+                "content": item.textContent ?? "",
+                "time": item.fullDateTime
+            ]
+        case .image:
+            guard let data = item.imageData else { return nil }
+            return [
+                "type": "clipboard",
+                "id": item.id.uuidString,
+                "contentType": "image",
+                "content": data.base64EncodedString(),
+                "time": item.fullDateTime
+            ]
+        }
+    }
+
+    private func sendHistory(to connection: NWConnection) {
+        let items = historyProvider?() ?? []
+        let payloads = items.prefix(100).compactMap { makeClipboardPayload($0) }
+        let message: [String: Any] = [
+            "type": "history",
+            "items": payloads
+        ]
+
+        guard let data = try? JSONSerialization.data(withJSONObject: message),
+              let text = String(data: data, encoding: .utf8) else { return }
+
+        connection.send(content: makeWebSocketFrame(text: text), completion: .contentProcessed { [weak self] error in
+            if error != nil {
+                self?.removeConnection(connection)
+            }
+        })
+    }
     
     // MARK: - 工具方法
     
     private func removeConnection(_ connection: NWConnection) {
         connection.cancel()
         queue.async { [weak self] in
-            self?.wsConnections.removeAll { $0 === connection }
+            guard let self = self else { return }
+            self.wsConnections.removeAll { $0 === connection }
+            self.publishClientCount()
+        }
+    }
+
+    private func publishClientCount() {
+        let count = wsConnections.count
+        DispatchQueue.main.async { [weak self] in
+            self?.connectedClientCount = count
         }
     }
     
@@ -372,17 +416,39 @@ class LocalServerService: ObservableObject {
             let addrFamily = interface.ifa_addr.pointee.sa_family
             if addrFamily == UInt8(AF_INET) {
                 let name = String(cString: interface.ifa_name)
+                let flags = Int32(interface.ifa_flags)
+                let isUp = (flags & IFF_UP) != 0
+                let isLoopback = (flags & IFF_LOOPBACK) != 0
+                guard isUp, !isLoopback else { continue }
+
+                var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len),
+                           &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST)
+                let candidate = String(cString: hostname)
+                guard candidate != "0.0.0.0", !candidate.hasPrefix("169.254.") else { continue }
+
                 if name == "en0" || name == "en1" {
-                    var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                    getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len),
-                               &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST)
-                    address = String(cString: hostname)
+                    address = candidate
                     break
+                }
+
+                if address == nil, isPrivateIPv4(candidate) {
+                    address = candidate
                 }
             }
         }
         freeifaddrs(ifaddr)
         return address
+    }
+
+    private func isPrivateIPv4(_ address: String) -> Bool {
+        let parts = address.split(separator: ".").compactMap { Int($0) }
+        guard parts.count == 4 else { return false }
+
+        if parts[0] == 10 { return true }
+        if parts[0] == 172, (16...31).contains(parts[1]) { return true }
+        if parts[0] == 192, parts[1] == 168 { return true }
+        return false
     }
     
     // MARK: - HTML 页面生成
@@ -590,6 +656,29 @@ class LocalServerService: ObservableObject {
           display: none;
         }
         .disconnected.show { display: block; }
+
+        /* MANUAL COPY */
+        .copy-sheet {
+          position: fixed; inset: 0; z-index: 300;
+          background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
+          display: none; align-items: flex-end; padding: 16px;
+        }
+        .copy-sheet.show { display: flex; }
+        .copy-panel {
+          width: 100%; max-width: 600px; margin: 0 auto;
+          background: var(--card); border: 1px solid var(--border);
+          border-radius: 18px; padding: 16px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+        }
+        .copy-panel-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+        .copy-panel-hint { font-size: 12px; color: var(--text2); margin-bottom: 10px; line-height: 1.5; }
+        .copy-panel-text {
+          width: 100%; min-height: 120px; max-height: 260px;
+          background: rgba(255,255,255,0.05); color: var(--text);
+          border: 1px solid var(--border); border-radius: 12px;
+          padding: 12px; font: inherit; resize: vertical;
+        }
+        .copy-panel-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
         </style>
         </head>
         <body>
@@ -632,6 +721,16 @@ class LocalServerService: ObservableObject {
 
           <div class="toast" id="toast"></div>
           <div class="disconnected" id="disconnected">⚠️ 连接已断开，正在重连...</div>
+          <div class="copy-sheet" id="copySheet" onclick="closeManualCopy(event)">
+            <div class="copy-panel" onclick="event.stopPropagation()">
+              <div class="copy-panel-title">手动复制</div>
+              <div class="copy-panel-hint">当前浏览器限制了自动复制。文本已选中，可以点系统菜单里的“拷贝/复制”。</div>
+              <textarea class="copy-panel-text" id="manualCopyText" readonly></textarea>
+              <div class="copy-panel-actions">
+                <button class="copy-btn" onclick="hideManualCopy()">关闭</button>
+              </div>
+            </div>
+          </div>
 
         <script>
         let ws;
@@ -659,18 +758,40 @@ class LocalServerService: ObservableObject {
           ws.onmessage = (e) => {
             try {
               const msg = JSON.parse(e.data);
-              if (msg.type === 'clipboard') {
+              if (msg.type === 'history' && Array.isArray(msg.items)) {
+                setClips(msg.items);
+              } else if (msg.type === 'clipboard') {
                 addClip(msg);
               }
             } catch(err) {}
           };
         }
 
+        function setClips(items) {
+          clips = [];
+          items.slice(0, 100).forEach((item) => {
+            if (!item || !item.contentType) return;
+            if (item.id && clips.some(c => c.id === item.id)) return;
+            clips.push(item);
+          });
+          renderClips();
+        }
+
         function addClip(msg) {
-          clips.unshift(msg);
-          if (clips.length > 100) clips = clips.slice(0, 100);
+          addClipToMemory(msg);
           renderClips();
           showToast(msg.source === 'phone' ? '✅ 已发送到电脑' : '📥 收到新内容');
+        }
+
+        function addClipToMemory(msg) {
+          if (!msg || !msg.contentType) return;
+
+          if (msg.id) {
+            clips = clips.filter(c => c.id !== msg.id);
+          }
+
+          clips.unshift(msg);
+          if (clips.length > 100) clips = clips.slice(0, 100);
         }
 
         function renderClips() {
@@ -715,6 +836,11 @@ class LocalServerService: ObservableObject {
           if (!c) return;
 
           if (c.contentType === 'image') {
+            if (!navigator.clipboard || !navigator.clipboard.write || typeof ClipboardItem === 'undefined') {
+              showToast('❌ 当前浏览器不支持复制图片');
+              return;
+            }
+
             // 将 base64 图片转为 blob 写入剪贴板
             fetch('data:image/png;base64,' + c.content)
               .then(r => r.blob())
@@ -725,19 +851,72 @@ class LocalServerService: ObservableObject {
                 }).catch(() => { showToast('❌ 复制失败'); });
               });
           } else {
-            navigator.clipboard.writeText(c.content).then(() => {
-              markCopied(idx);
-            }).catch(() => {
-              // fallback
-              const ta = document.createElement('textarea');
-              ta.value = c.content;
-              document.body.appendChild(ta);
-              ta.select();
-              document.execCommand('copy');
-              document.body.removeChild(ta);
-              markCopied(idx);
+            copyText(c.content).then((ok) => {
+              if (ok) {
+                markCopied(idx);
+              } else {
+                showManualCopy(c.content);
+              }
             });
           }
+        }
+
+        async function copyText(text) {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+              await navigator.clipboard.writeText(text);
+              return true;
+            } catch (_) {}
+          }
+
+          return legacyCopyText(text);
+        }
+
+        function legacyCopyText(text) {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.top = '0';
+          ta.style.left = '0';
+          ta.style.width = '1px';
+          ta.style.height = '1px';
+          ta.style.opacity = '0.01';
+          document.body.appendChild(ta);
+
+          ta.focus();
+          ta.select();
+          ta.setSelectionRange(0, ta.value.length);
+
+          let ok = false;
+          try {
+            ok = document.execCommand('copy');
+          } catch (_) {
+            ok = false;
+          }
+
+          document.body.removeChild(ta);
+          return ok;
+        }
+
+        function showManualCopy(text) {
+          const sheet = document.getElementById('copySheet');
+          const ta = document.getElementById('manualCopyText');
+          ta.value = text;
+          sheet.classList.add('show');
+          setTimeout(() => {
+            ta.focus();
+            ta.select();
+            ta.setSelectionRange(0, ta.value.length);
+          }, 50);
+        }
+
+        function hideManualCopy() {
+          document.getElementById('copySheet').classList.remove('show');
+        }
+
+        function closeManualCopy(event) {
+          if (event.target.id === 'copySheet') hideManualCopy();
         }
 
         function markCopied(idx) {
@@ -760,6 +939,7 @@ class LocalServerService: ObservableObject {
           ws.send(JSON.stringify({ type: 'send', content: text }));
           input.value = '';
           input.style.height = 'auto';
+          showToast('✅ 已发送到电脑');
         }
 
         function showToast(msg) {
