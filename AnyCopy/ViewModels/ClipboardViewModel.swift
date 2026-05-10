@@ -4,15 +4,28 @@ import Combine
 
 /// 剪贴板视图模型
 class ClipboardViewModel: ObservableObject {
+    private let initialDisplayLimit = 20
+    private let pageSize = 20
+    private let textPreviewLimit = 400
+    
     @Published var items: [ClipboardItem] = []
     @Published var filteredItems: [ClipboardItem] = []
-    @Published var selectedItem: ClipboardItem?
+    @Published var selectedItem: ClipboardItem? {
+        didSet {
+            loadSelectedItemContentIfNeeded()
+        }
+    }
     @Published var searchText: String = ""
     @Published var isLoading: Bool = false
+    @Published var isLoadingMore: Bool = false
+    @Published var selectedTextPreview: String = ""
+    @Published var isSelectedTextPreviewTruncated: Bool = false
+    @Published var totalItemCount: Int = 0
     
     private var cancellables = Set<AnyCancellable>()
     private let storageService = StorageService.shared
-    private let searchService = SearchService.shared
+    private var searchGeneration = 0
+    private var selectedPreviewGeneration = 0
     
     /// 弱引用 ClipboardService，用于正确写入粘贴板（避免重复记录）
     weak var clipboardService: ClipboardService?
@@ -37,16 +50,18 @@ class ClipboardViewModel: ObservableObject {
     func loadItems() {
         isLoading = true
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let loadedItems = self?.storageService.loadItems() ?? []
+            guard let self else { return }
+            let loadedItems = self.storageService.loadRecentItems(limit: self.initialDisplayLimit, includeContent: false)
+            let totalCount = self.storageService.countItems()
             DispatchQueue.main.async {
-                self?.items = loadedItems
-                self?.sortItems()
-                self?.filterItems(keyword: self?.searchText ?? "")
-                self?.isLoading = false
+                self.items = loadedItems
+                self.totalItemCount = totalCount
+                self.filterItems(keyword: self.searchText)
+                self.isLoading = false
                 
                 // 默认选中第一条非置顶记录
-                if self?.selectedItem == nil {
-                    self?.selectedItem = self?.defaultSelectedItem()
+                if self.selectedItem == nil {
+                    self.selectedItem = self.defaultSelectedItem()
                 }
             }
         }
@@ -65,19 +80,26 @@ class ClipboardViewModel: ObservableObject {
     /// 添加新的剪贴板条目
     func addItem(_ item: ClipboardItem) {
         // 添加到列表头部（置顶项之后）
-        let firstNonPinnedIndex = items.firstIndex { !$0.isPinned } ?? 0
+        let firstNonPinnedIndex = items.firstIndex { !$0.isPinned } ?? items.endIndex
         items.insert(item, at: firstNonPinnedIndex)
+        items = Array(items.prefix(initialDisplayLimit))
         
         // 检查是否超过上限，自动清理非置顶的旧记录
         let maxCount = UserDefaults.standard.integer(forKey: "maxHistoryCount")
         let limit = maxCount > 0 ? maxCount : 200  // 默认200条
-        trimToLimit(limit)
+        totalItemCount += 1
         
         filterItems(keyword: searchText)
         
         // 保存到数据库
         DispatchQueue.global(qos: .background).async { [weak self] in
-            self?.storageService.save(item)
+            guard let self else { return }
+            self.storageService.save(item)
+            self.storageService.trimToLimit(limit)
+            let totalCount = self.storageService.countItems()
+            DispatchQueue.main.async {
+                self.totalItemCount = totalCount
+            }
         }
         
         // 通知 Web 服务器推送
@@ -86,7 +108,8 @@ class ClipboardViewModel: ObservableObject {
     
     /// 将指定条目复制到系统粘贴板（通过 ClipboardService 确保 lastChangeCount 同步，避免产生重复记录）
     func copyItemToClipboard(_ item: ClipboardItem) {
-        clipboardService?.copyToClipboard(item)
+        let fullItem = item.hasLoadedContent ? item : (storageService.loadItem(id: item.id) ?? item)
+        clipboardService?.copyToClipboard(fullItem)
     }
 
     /// 确认当前选中项
@@ -109,14 +132,19 @@ class ClipboardViewModel: ObservableObject {
     
     /// 置顶/取消置顶
     func togglePin(_ item: ClipboardItem) {
-        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        var updatedItem = item
+        updatedItem.isPinned.toggle()
         
-        items[index].isPinned.toggle()
-        let updatedItem = items[index]
+        if let index = items.firstIndex(where: { $0.id == item.id }) {
+            items[index] = updatedItem
+            sortItems()
+            items = Array(items.prefix(initialDisplayLimit))
+        }
         
-        // 重新排序
-        sortItems()
-        filterItems(keyword: searchText)
+        if let index = filteredItems.firstIndex(where: { $0.id == item.id }) {
+            filteredItems[index] = updatedItem
+            sortFilteredItems()
+        }
         
         // 更新选中项
         selectedItem = updatedItem
@@ -131,73 +159,188 @@ class ClipboardViewModel: ObservableObject {
     func trimToLimit(_ limit: Int) {
         guard limit < 10000 else { return }
         
-        // 分离置顶和非置顶
-        let pinnedItems = items.filter { $0.isPinned }
-        var unpinnedItems = items.filter { !$0.isPinned }
-        
-        // 仅裁剪非置顶项
-        let unpinnedLimit = max(0, limit - pinnedItems.count)
-        if unpinnedItems.count > unpinnedLimit {
-            let itemsToRemove = Array(unpinnedItems.suffix(unpinnedItems.count - unpinnedLimit))
-            unpinnedItems = Array(unpinnedItems.prefix(unpinnedLimit))
-            
-            // 从数据库删除
-            DispatchQueue.global(qos: .background).async { [weak self] in
-                for item in itemsToRemove {
-                    self?.storageService.delete(item)
-                }
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            guard let self else { return }
+            self.storageService.trimToLimit(limit)
+            let loadedItems = self.storageService.loadRecentItems(limit: self.initialDisplayLimit, includeContent: false)
+            let totalCount = self.storageService.countItems()
+            DispatchQueue.main.async {
+                self.items = loadedItems
+                self.totalItemCount = totalCount
+                self.filterItems(keyword: self.searchText)
             }
         }
-        
-        items = pinnedItems + unpinnedItems
-        filterItems(keyword: searchText)
     }
     
     /// 删除条目
     func deleteItem(_ item: ClipboardItem) {
         items.removeAll { $0.id == item.id }
-        filterItems(keyword: searchText)
+        filteredItems.removeAll { $0.id == item.id }
+        totalItemCount = max(0, totalItemCount - 1)
         
         if selectedItem?.id == item.id {
             selectedItem = defaultSelectedItem()
         }
         
         DispatchQueue.global(qos: .background).async { [weak self] in
-            self?.storageService.delete(item)
+            guard let self else { return }
+            self.storageService.delete(item)
+            let loadedItems = self.storageService.loadRecentItems(limit: max(self.items.count, self.initialDisplayLimit), includeContent: false)
+            let totalCount = self.storageService.countItems()
+            DispatchQueue.main.async {
+                self.items = loadedItems
+                self.totalItemCount = totalCount
+                self.filterItems(keyword: self.searchText)
+            }
         }
     }
     
     /// 清空所有历史（保留置顶项）
     func clearAll() {
         items.removeAll { !$0.isPinned }
-        filterItems(keyword: searchText)
-        
-        if let selected = selectedItem, !items.contains(selected) {
-            selectedItem = defaultSelectedItem()
-        }
+        filteredItems.removeAll { !$0.isPinned }
+        totalItemCount = items.count
         
         DispatchQueue.global(qos: .background).async { [weak self] in
-            self?.storageService.clearAll(keepPinned: true)
+            guard let self else { return }
+            self.storageService.clearAll(keepPinned: true)
+            let loadedItems = self.storageService.loadRecentItems(limit: self.initialDisplayLimit, includeContent: false)
+            let totalCount = self.storageService.countItems()
+            DispatchQueue.main.async {
+                self.items = loadedItems
+                self.totalItemCount = totalCount
+                self.filterItems(keyword: self.searchText)
+            }
         }
     }
     
     /// 过滤条目
     private func filterItems(keyword: String) {
-        if keyword.isEmpty {
+        searchGeneration += 1
+        let generation = searchGeneration
+        let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if normalizedKeyword.isEmpty {
             filteredItems = items
-        } else {
-            filteredItems = searchService.search(items: items, keyword: keyword)
+            if let selected = selectedItem, !filteredItems.contains(selected) {
+                selectedItem = defaultSelectedItem()
+            }
+            return
         }
         
-        // 更新选中项
-        if let selected = selectedItem, !filteredItems.contains(selected) {
-            selectedItem = defaultSelectedItem()
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            let results = self.storageService.search(keyword: normalizedKeyword)
+            DispatchQueue.main.async {
+                guard generation == self.searchGeneration else { return }
+                self.filteredItems = results
+                
+                if let selected = self.selectedItem, !self.filteredItems.contains(selected) {
+                    self.selectedItem = self.defaultSelectedItem()
+                } else if self.selectedItem == nil {
+                    self.selectedItem = self.defaultSelectedItem()
+                }
+            }
+        }
+    }
+
+    func selectItem(_ item: ClipboardItem) {
+        selectedItem = item
+    }
+
+    func loadMoreItemsIfNeeded(currentItem item: ClipboardItem) {
+        guard searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !isLoadingMore,
+              items.count < totalItemCount,
+              let index = filteredItems.firstIndex(of: item),
+              index >= max(0, filteredItems.count - 5) else {
+            return
+        }
+
+        isLoadingMore = true
+        let offset = items.count
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            let nextItems = self.storageService.loadRecentItems(limit: self.pageSize, offset: offset, includeContent: false)
+            DispatchQueue.main.async {
+                let existingIds = Set(self.items.map(\.id))
+                let uniqueItems = nextItems.filter { !existingIds.contains($0.id) }
+                self.items.append(contentsOf: uniqueItems)
+                self.filteredItems = self.items
+                self.isLoadingMore = false
+            }
+        }
+    }
+
+    private func loadSelectedItemContentIfNeeded() {
+        selectedPreviewGeneration += 1
+        let generation = selectedPreviewGeneration
+        selectedTextPreview = ""
+        isSelectedTextPreviewTruncated = false
+
+        guard let item = selectedItem else { return }
+
+        if item.type == .text, let text = item.textContent {
+            selectedTextPreview = String(text.prefix(textPreviewLimit))
+            isSelectedTextPreviewTruncated = text.count > textPreviewLimit
+            return
+        }
+
+        if item.type == .image {
+            guard !item.hasLoadedContent else { return }
+
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let self, let fullItem = self.storageService.loadItem(id: item.id) else { return }
+                DispatchQueue.main.async {
+                    guard generation == self.selectedPreviewGeneration,
+                          self.selectedItem?.id == fullItem.id else {
+                        return
+                    }
+                    self.replaceItem(fullItem)
+                    self.selectedItem = fullItem
+                }
+            }
+            return
+        }
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self,
+                  let preview = self.storageService.loadTextPreview(id: item.id, limit: self.textPreviewLimit) else {
+                return
+            }
+            DispatchQueue.main.async {
+                guard generation == self.selectedPreviewGeneration,
+                      self.selectedItem?.id == item.id else {
+                    return
+                }
+                self.selectedTextPreview = preview.text
+                self.isSelectedTextPreviewTruncated = preview.isTruncated
+            }
+        }
+    }
+
+    private func replaceItem(_ item: ClipboardItem) {
+        if let index = items.firstIndex(where: { $0.id == item.id }) {
+            items[index] = item
+        }
+
+        if let index = filteredItems.firstIndex(where: { $0.id == item.id }) {
+            filteredItems[index] = item
         }
     }
 
     /// 默认选择第一条非置顶记录；如果当前结果只有置顶记录，则选择第一条。
     private func defaultSelectedItem() -> ClipboardItem? {
         filteredItems.first { !$0.isPinned } ?? filteredItems.first
+    }
+
+    private func sortFilteredItems() {
+        filteredItems.sort { (a, b) -> Bool in
+            if a.isPinned != b.isPinned {
+                return a.isPinned
+            }
+            return a.createdAt > b.createdAt
+        }
     }
     
     /// 选择上一项
@@ -207,7 +350,7 @@ class ClipboardViewModel: ObservableObject {
               index > 0 else {
             return
         }
-        selectedItem = filteredItems[index - 1]
+        selectItem(filteredItems[index - 1])
     }
     
     /// 选择下一项
@@ -220,6 +363,17 @@ class ClipboardViewModel: ObservableObject {
             }
             return
         }
-        selectedItem = filteredItems[index + 1]
+        selectItem(filteredItems[index + 1])
+    }
+}
+
+private extension ClipboardItem {
+    var hasLoadedContent: Bool {
+        switch type {
+        case .text:
+            return textContent != nil
+        case .image:
+            return imageData != nil
+        }
     }
 }

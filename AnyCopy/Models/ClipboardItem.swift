@@ -16,7 +16,7 @@ struct ClipboardItem: Identifiable, Codable, Equatable, Hashable {
     let createdAt: Date
     var isPinned: Bool  // 是否置顶
     
-    init(id: UUID = UUID(), type: ClipboardItemType, textContent: String? = nil, imageData: Data? = nil, createdAt: Date = Date(), isPinned: Bool = false) {
+    init(id: UUID = UUID(), type: ClipboardItemType, textContent: String? = nil, imageData: Data? = nil, preview: String? = nil, createdAt: Date = Date(), isPinned: Bool = false) {
         self.id = id
         self.type = type
         self.textContent = textContent
@@ -25,12 +25,16 @@ struct ClipboardItem: Identifiable, Codable, Equatable, Hashable {
         self.isPinned = isPinned
         
         // 生成预览文字
-        switch type {
-        case .text:
-            let text = textContent ?? ""
-            self.preview = String(text.prefix(80)).replacingOccurrences(of: "\n", with: " ")
-        case .image:
-            self.preview = "[图片]"
+        if let preview {
+            self.preview = preview
+        } else {
+            switch type {
+            case .text:
+                let text = textContent ?? ""
+                self.preview = String(text.prefix(80)).replacingOccurrences(of: "\n", with: " ")
+            case .image:
+                self.preview = "[图片]"
+            }
         }
     }
     

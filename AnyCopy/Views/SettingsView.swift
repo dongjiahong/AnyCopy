@@ -183,7 +183,7 @@ struct SettingsWindowContent: View {
                             HStack {
                                 Text("历史记录")
                                 Spacer()
-                                Text("\(viewModel.items.count) 条")
+                                Text("\(viewModel.totalItemCount) 条")
                                     .foregroundColor(.secondary)
                             }
                             

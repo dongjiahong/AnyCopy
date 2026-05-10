@@ -29,7 +29,7 @@ struct MainWindowView: View {
                 // 底部工具栏
                 HStack {
                     // 记录数量
-                    Text("\(viewModel.items.count) 条记录")
+                    Text("\(viewModel.totalItemCount) 条记录")
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                     

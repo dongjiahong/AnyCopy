@@ -26,14 +26,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
 
         // Web 客户端刷新/重连时拉取当前历史快照
-        localServer.historyProvider = { [weak self] in
-            guard let self = self else { return [] }
-            if Thread.isMainThread {
-                return self.clipboardViewModel.items
-            }
-            return DispatchQueue.main.sync {
-                self.clipboardViewModel.items
-            }
+        localServer.historyProvider = {
+            StorageService.shared.loadRecentItems(limit: 100)
         }
         
         // 手机发来消息 → 写入电脑剪贴板 + 添加到历史

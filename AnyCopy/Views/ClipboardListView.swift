@@ -21,8 +21,11 @@ struct ClipboardListView: View {
                             onPin: { viewModel.togglePin(item) }
                         )
                         .id(item.id)
+                        .onAppear {
+                            viewModel.loadMoreItemsIfNeeded(currentItem: item)
+                        }
                         .onTapGesture {
-                            viewModel.selectedItem = item
+                            viewModel.selectItem(item)
                             onSelectItem()
                         }
                         .onHover { hovering in

@@ -47,7 +47,10 @@ struct PreviewView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         switch item.type {
                         case .text:
-                            TextPreviewView(text: item.textContent ?? "")
+                            TextPreviewView(
+                                text: viewModel.selectedTextPreview.isEmpty ? item.preview : viewModel.selectedTextPreview,
+                                isTruncated: viewModel.isSelectedTextPreviewTruncated
+                            )
                         case .image:
                             ImagePreviewView(imageData: item.imageData)
                         }
@@ -106,16 +109,14 @@ struct PreviewView: View {
 /// 文字预览视图（支持 Markdown）
 struct TextPreviewView: View {
     let text: String
+    var isTruncated: Bool = false
 
-    private let markdownLimit = 8_000
-    private let previewLimit = 5_000
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if isLargeText {
+            if isTruncated {
                 largeTextNotice
 
-                Text(previewText)
+                Text(text)
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundColor(.primary.opacity(0.9))
                     .lineSpacing(3)
@@ -148,21 +149,12 @@ struct TextPreviewView: View {
         )
     }
 
-    private var isLargeText: Bool {
-        text.count > markdownLimit
-    }
-
-    private var previewText: String {
-        guard text.count > previewLimit else { return text }
-        return String(text.prefix(previewLimit))
-    }
-
     private var largeTextNotice: some View {
         HStack(spacing: 6) {
             Image(systemName: "text.alignleft")
                 .font(.system(size: 11))
 
-            Text(text.count > previewLimit ? "内容较大，仅预览前 \(previewLimit) 个字符" : "内容较大，已使用快速预览")
+            Text("内容较大，仅预览前 400 个字符")
                 .font(.system(size: 11, weight: .medium))
         }
         .foregroundColor(.secondary)

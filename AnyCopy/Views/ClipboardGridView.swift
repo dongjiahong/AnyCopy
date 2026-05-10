@@ -16,21 +16,24 @@ struct ClipboardGridView: View {
                             index: index + 1,
                             isSelected: viewModel.selectedItem?.id == item.id,
                             isHovered: hoveredItemId == item.id,
-                            onCopy: { copyToClipboard(item) },
+                            onCopy: { viewModel.copyItemToClipboard(item) },
                             onDelete: { viewModel.deleteItem(item) },
                             onPin: { viewModel.togglePin(item) }
                         )
                         .id(item.id)
+                        .onAppear {
+                            viewModel.loadMoreItemsIfNeeded(currentItem: item)
+                        }
                         .onHover { isHovered in
                             withAnimation(.easeInOut(duration: 0.1)) {
                                 hoveredItemId = isHovered ? item.id : nil
                             }
                         }
                         .onTapGesture(count: 2) {
-                            copyToClipboard(item)
+                            viewModel.copyItemToClipboard(item)
                         }
                         .onTapGesture(count: 1) {
-                            viewModel.selectedItem = item
+                            viewModel.selectItem(item)
                         }
                     }
                 }
@@ -64,22 +67,6 @@ struct ClipboardGridView: View {
                         subtitle: "复制内容后会自动显示"
                     )
                 }
-            }
-        }
-    }
-    
-    private func copyToClipboard(_ item: ClipboardItem) {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        
-        switch item.type {
-        case .text:
-            if let text = item.textContent {
-                pasteboard.setString(text, forType: .string)
-            }
-        case .image:
-            if let data = item.imageData {
-                pasteboard.setData(data, forType: .png)
             }
         }
     }
