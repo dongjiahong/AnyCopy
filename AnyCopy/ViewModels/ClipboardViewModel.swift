@@ -101,6 +101,11 @@ class ClipboardViewModel: ObservableObject {
         filterItems(keyword: "")
         selectedItem = defaultSelectedItem()
     }
+
+    /// 面板每次显示时从当前结果顶部重新开始选择。
+    func resetSelectionToTop() {
+        selectedItem = filteredItems.first
+    }
     
     /// 置顶/取消置顶
     func togglePin(_ item: ClipboardItem) {

@@ -102,6 +102,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                 self.popover.performClose(nil)
             } else {
                 if let button = self.statusItem.button {
+                    self.clipboardViewModel.resetSelectionToTop()
                     self.popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
                     // 强制激活应用，确保窗口获取焦点
                     NSApp.activate(ignoringOtherApps: true)
