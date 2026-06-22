@@ -106,10 +106,51 @@ class ClipboardViewModel: ObservableObject {
         onNewItem?(item)
     }
     
-    /// 将指定条目复制到系统粘贴板（通过 ClipboardService 确保 lastChangeCount 同步，避免产生重复记录）
+    /// 将指定条目复制到系统粘贴板，并将其时间更新为当前时间以排在历史记录最前
     func copyItemToClipboard(_ item: ClipboardItem) {
         let fullItem = item.hasLoadedContent ? item : (storageService.loadItem(id: item.id) ?? item)
-        clipboardService?.copyToClipboard(fullItem)
+        
+        // 创建更新了 createdAt 的新对象
+        let updatedItem = ClipboardItem(
+            id: fullItem.id,
+            type: fullItem.type,
+            textContent: fullItem.textContent,
+            imageData: fullItem.imageData,
+            preview: fullItem.preview,
+            createdAt: Date(),
+            isPinned: fullItem.isPinned
+        )
+        
+        // 将内容复制到剪贴板
+        clipboardService?.copyToClipboard(updatedItem)
+        
+        // 更新内存中的列表和排序
+        if let index = items.firstIndex(where: { $0.id == updatedItem.id }) {
+            items[index] = updatedItem
+        } else {
+            items.insert(updatedItem, at: 0)
+        }
+        sortItems()
+        items = Array(items.prefix(initialDisplayLimit))
+        
+        if let index = filteredItems.firstIndex(where: { $0.id == updatedItem.id }) {
+            filteredItems[index] = updatedItem
+            sortFilteredItems()
+        }
+        
+        // 更新选中项
+        selectedItem = updatedItem
+        
+        // 保存到数据库
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            guard let self = self else { return }
+            self.storageService.save(updatedItem)
+            
+            // 通知 Web 服务器推送更新
+            DispatchQueue.main.async {
+                self.onNewItem?(updatedItem)
+            }
+        }
     }
 
     /// 确认当前选中项
